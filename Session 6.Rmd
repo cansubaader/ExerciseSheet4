@@ -1,0 +1,354 @@
+---
+title: "Session 6"
+author: "Pia Baader"
+date: "2023-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+osmdata: street maps 
+
+
+```{r}
+#install.packages("osmdata")
+library(osmdata) 
+bb <- getbb("Germany")
+bb
+```
+different output formats via format_out
+
+```{r}
+
+```
+
+boundaries plotting: featuretype = ...
+tm_shape(bb_test$multipolygon) für das richtige Ergebnis 
+constructing an overpass query: 
+bb_obb <- getbb("Oberbayern")
+q <- opq(bb_obb) %>% add_osm_feature(key= 'natural', value = 'peak')
+result <- q %>% osmdata_sf() 
+results$osm_points (Suche verfeinern)
+etwas auf die Karte: mit tm_shape(result$osm_points) + tm_dots(id="name")
+
+
+title: "Practical 6"
+description: "Fortgeschrittene Statistische Software für NF - SS 2022/23"
+author:
+  - name: Jan Simson
+date: "`r Sys.Date()`"
+output: distill::distill_article
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Lecture
+
+## Spatial Data
+
+- `{sf}`
+- Many formats
+- [Shapefiles](https://en.wikipedia.org/wiki/Shapefile) (info via Wikipedia)
+  - `.shp` — shape format; the feature geometry itself {content-type: x-gis/x-shapefile}
+  - `.shx` — shape index format; a positional index of the feature geometry to allow seeking forwards and backwards quickly {content-type: x-gis/x-shapefile}
+  - `.dbf` — attribute format; columnar attributes for each shape, in dBase IV format {content-type: application/octet-stream OR text/plain}
+  - `.prj` — projection description, using a well-known text representation of coordinate reference systems {content-type: text/plain OR application/text}
+
+```{r}
+library(sf)
+library(spData)
+
+bavaria <- read_sf("data/bavaria.shp")
+# Nicer column names
+colnames(bavaria) <- c(
+  "place", "type", "gdp_per_capita", "mean_age",
+  "pop_density", "unemployment_rate",
+  "employment_rate", "household_income",
+  "students", "pop_development", "geometry"
+)
+
+bavaria
+```
+
+## tmap
+
+```{r}
+library(tmap)
+
+tm_shape(bavaria) +
+  tm_fill()
+```
+
+```{r}
+tm_shape(bavaria) +
+  tm_borders()
+```
+
+### tmap_mode
+
+- `plot` or `view`
+
+```{r}
+tmap_mode("plot")
+
+tm_shape(bavaria) +
+  tm_borders()
+```
+
+```{r}
+tmap_mode("view")
+
+tm_shape(bavaria) +
+  tm_borders()
+```
+
+## Choropleths
+
+```{r}
+tmap_mode("plot")
+
+tm_shape(bavaria) +
+  tm_polygons(col = "gdp_per_capita")
+```
+
+```{r}
+tm_shape(bavaria) +
+  tm_polygons(col = "pop_density", midpoint = 0)
+```
+
+Source of data and example code: https://bookdown.org/nicohahn/making_maps_with_r5/docs/tmap.html
+
+## osmdata
+
+```{r}
+library(osmdata)
+
+bb <- getbb("Germany")
+bb
+```
+
+### Different output formats via `format_out`.
+
+```{r}
+bb <- getbb("Germany", format_out = "sf_polygon")
+bb
+```
+
+Now we can pass it into tmap.
+
+```{r}
+tmap_mode("plot")
+
+tm_shape(bb) +
+  tm_borders()
+```
+
+```{r}
+tmap_mode("view")
+
+tm_shape(bb) +
+  tm_borders()
+```
+
+### Getting bounds for the correct element via `featuretype`
+
+By default getbb will return bounds of type `"settlement"`, anything smaller than a country.
+
+```{r}
+bb <- getbb("Germany", featuretype = "country", format_out = "sf_polygon")
+bb
+```
+
+```{r error=TRUE}
+tm_shape(bb) +
+  tm_borders()
+```
+
+```{r}
+tm_shape(bb$multipolygon) +
+  tm_borders()
+```
+```{r}
+getbb("Germany", featuretype = "country", format_out = "matrix")
+```
+
+
+### Querying data with `osmdata`
+
+#### Getting the correct bounding box
+
+```{r}
+bb_test <- getbb("Munich", format_out = "sf_polygon")
+bb_test
+```
+
+```{r}
+tm_shape(bb_test$multipolygon) +
+  tm_borders()
+```
+
+### Constructing an overpass Query
+
+For overpapass we need bounding boxes in a different format.
+
+```{r}
+bb_obb <- getbb("Oberbayern")
+```
+
+https://wiki.openstreetmap.org/wiki/Tag:natural%3Dpeak
+
+```{r}
+q <- opq(bb_obb) %>% 
+    add_osm_feature(key = 'natural', value = 'peak')
+```
+
+The result comes with different kinds of returned data:
+
+```{r}
+result <- q %>% 
+  osmdata_sf()
+result
+```
+
+```{r}
+result$osm_points
+```
+
+```{r}
+library(tidyverse)
+result$osm_points <- result$osm_points %>% 
+  mutate(ele = as.numeric(ele))
+```
+
+
+```{r}
+tm_shape(result$osm_points) +
+  tm_dots(id = "name")
+```
+```{r}
+library(tidyverse)
+
+result$osm_points %>% 
+  mutate(
+    ele = as.numeric(ele)
+  ) %>% 
+  filter(
+    ele > 1000
+  ) %>% 
+  tm_shape() +
+  tm_dots(id = "name", col = "ele")
+```
+
+
+# Practical: Let's plan a hiking trip around Munich!
+
+We want to plan a hiking trip in the Munich area and want to use geospatial data science tools to help us with the planning.
+
+## Part 1: Snacks
+
+Before going on a hike we'll need to buy some snacks to eat while up on the peak.
+
+a) Let's start by first getting the bounding box for the `Maxvorstadt` so we can buy some snacks closeby.
+
+```{r}
+library(tidyverse)
+#install.packages("tmap")
+library(osmdata)
+library(tmap)
+
+getbb("Maxvorstadt")
+```
+
+b) Plot the bounding box using `{tmap}` to check whether it is correct.
+
+```{r}
+bb_max <- getbb("Maxvorstadt", format_out = "sf_polygon")
+
+tmap_mode("view")
+tm_shape(bb_max) + 
+  tm_borders()
+```
+
+```
+
+c) Search online to determine the feature type that we will need to find *supermarkets* on OSM. What is the feature type called in the OSM wiki?
+
+shop = supermarket
+
+d) Construct an OSM query to find all supermarkets within the Maxvorstadt.
+
+```{r}
+maxv_supermarkets <- opq(getbb("Maxvorstadt")) %>%
+  add_osm_feature(key= "shop",  value = "supermarket") %>% 
+  osmdata_sf()
+  
+maxv_supermarkets
+
+maxv_supermarkets$osm_points()
+```
+
+e) Create an interactive map of them using tmap.
+
+```{r}
+tmap_mode("view")
+tm_shape(maxv_supermarkets$osm_points) + 
+  tm_dots(id= "name", col= "brand")
+```
+
+## Part 2: Destination
+
+a) Let's continue by getting the bounding box for the city of Munich.
+
+```{r}
+bb <- getbb("Munich",  format_out = "sf_polygon") %>% 
+bb 
+
+
+```
+
+b) Plot the bounding box using `{tmap}` to check whether it is correct.
+
+```{r}
+bb %>% 
+  tm_shape(") + 
+  tm_borders()
+```
+
+c) Construct a query to find all peaks within the Munich area and execute it to get the data.
+
+```{r}
+munich_peaks <- opq(getbb("Munich")) %>% 
+        add_osm_feature(key="natural", value = "peak") %>% 
+        osmdata_sf()
+```
+
+d) How many peaks are there in around Munich and what is their average height?
+
+```{r}
+munich_peaks$osm_points %>% nrow()
+
+munich_peaks_num <- munich_peaks$osm_points %>% 
+mutate(ele= as.numeric(ele))
+```
+
+e) Filter the result to only include peaks higher than the median.
+
+```{r}
+mp_above_median <- munich_peaks_num %>% 
+   filter(ele > median(ele, na.rm = TRUE))
+   
+mp_above_median
+```
+
+f) Use `tm_bubbles` to plot the remaining peaks on the map. Increase the size of the bubbles based on the elevation of the peaks.
+
+```{r}
+tm_shape(mp_above_median) + 
+ tm_bubbles(id="name", col =  "ele", size = "ele")
+ 
+```
+
