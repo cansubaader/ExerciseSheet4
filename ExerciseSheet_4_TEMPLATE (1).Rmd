@@ -1,0 +1,130 @@
+---
+title: "Exercise #6"
+subtitle: "Fortgeschrittene Statistische Software für NF - SS 2022/23"
+author: "Pia Baader (12162232)"
+date: "`r Sys.Date()`"
+---
+
+## General Remarks
+
+-   You can submit your solutions in teams of up to 3 students.
+
+-   Include all your team-member's names and student numbers
+    (Martrikelnummern) in the `authors` field.
+
+-   Please use the exercise template document to work on and submit your
+    results.
+
+-   Use a level 2 heading for each new exercise and answer each subtask
+    next to it's bullet point or use a new level 3 heading if you want.
+
+-   Always render the R code for your solutions and make sure to include
+    the resulting data in your rendered document.
+
+-   Submit your solution in a HTML file
+
+-   Make sure to not print more than 10 rows of data (unless
+    specifically instructed to).
+
+-   Always submit both the rendered document(s) as well as your source
+    Rmarkdown document. Submit the files separately on moodle, **not**
+    as a zip archive.
+
+-   **NEW**: Make sure to submit you render your Rmarkdown as
+    `distill:distill_article` and check the final output regarding any
+    issues in formatting. Formatting errors may lead to point
+    deductions.
+
+# Planning a hiking trip in the alps!
+
+## Exercise 1: Finding the alps (4 Points)
+
+We want to plan a hiking trip in the Alps and want to use geospatial
+data science tools to help us with the planning. We will use the R
+packages `{osmdata}` and `{tmap}` for this.
+
+a)  Start by getting the bounding box for the `"Alps"` using the
+    appropriate function from `{osmdata}`.
+```{r}
+
+```
+
+
+b)  Adjust the function to return a `sf_polygon` and plot it using
+    `{tmap}` to check whether it is correct. Use the function
+    `tm_borders` to plot just its outline.
+
+-   Use the correct argument to plot the borders in `"darkgreen"`
+-   Copy your plotting code and use it with the two different options
+    for `tmap_mode()` to have one interactive version and one
+    non-interactive version
+
+c)  Briefly describe the pros and cons of interactive maps and
+    non-interactive maps based on the example you created in b) with one
+    sentence each. `print_points(1)`
+
+d)  It seems the whole alps are a big too big, so let's just focus on
+    the `"Dolimites"`. Retrieve a bounding box for the Dolomites and
+    plot it's outline to check whether it's correct.
+
+## Exercise 2: Finding Accommodation (5 Points)
+
+We want to sleep in some remote places (without staff or restaurants) on
+our hike, so let's find some using OpenStreetMaps.
+
+a)  Search for the correct tag to identify *wilderness huts* in
+    OpenStreetMaps. Write down the tag below and add the URL to its
+    OSMWiki page.
+
+b)  Create the correct OSM query in {osmdata} and execute it to download
+    a list of all wilderness huts in the Dolomites. Use a bounding box
+    for the `"Dolomites"`, but be sure to use the correct format
+    (`sf_polygon` does not work with queries).
+
+c)  How many wilderness huts are there in the Dolomites?
+
+> Hint: If you have trouble working with the result, look at the
+> different types of result in there. We're only interested in
+> osm_points here.
+
+d)  Since these are slightly more huts than expected, let's only look at
+    the ones that have names. Filter the result to only include huts
+    with names (column `name`). How many huts are there with names?
+
+e)  Use `tm_dots` to plot the remaining huts on an **interactive** map.
+
+-   Color the dots based on the elevation of the hut (you may need to
+    convert the column `ele` for this to work properly)
+-   Use the hut's name as id on the map to see it when hovering the dots
+
+f)  We're all done! Lastly, select one of the huts that you find
+    appealing and return only its row in the data. What's the name of
+    the hut you chose and what is its elevation?
+
+## Exercise 3: It's coming home (6 Points)
+
+In this exercise you will analyze and visualize some datasets, that
+contain information on every professional football match played in the
+UK since 1888. You can access the data via this GitHub repository:
+<https://github.com/jfjelstul/englishfootball>
+
+a)  Load the `{matches.csv}` file from the `{data}` folder. Visualize
+    how the number of total goals scored per game has evolved over time.
+    Create a nice and complete plot and interpret what you see in one or
+    two sentences.
+
+b)  Load the `{standings.csv}` dataset. Run a linear regression model,
+    that has the final rank of a team at the end of a season as
+    dependent variable. Include at least three independent variables,
+    that make sense to include. Interpret two coefficients
+    statistically.
+
+c)  From the `{matches.csv}` do the following calculations and present
+    your results in a table:
+
+1.  Which team has the most wins, losses and draws?
+2.  Which team played the most league games in the data?
+3.  Which team has the best/worst win percentage?
+4.  How many points did Manchester United get each season they were
+    featured in the data? (For simplification: Win = 3 points, Draw = 1,
+    Loss = 0)
